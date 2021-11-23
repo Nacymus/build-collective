@@ -56,10 +56,14 @@ contract BuildCollective is Ownable {
   }
 
 
-  function addMember(User memory toBeMember, address toBeMemberAddress) public returns(User memory){
+  function addMember(string memory toBeMember, address toBeMemberAddress) public returns(User memory){
     require(bytes(enterprises[msg.sender].name).length >0);
-    require(toBeMember.registered);
-    members[msg.sender][toBeMemberAddress]= toBeMember;
+    require(users[toBeMemberAddress].registered);
+    members[msg.sender][toBeMemberAddress]= User(toBeMember, 0, true);
+  }
+
+  function getMember(address member) public returns (User memory){
+      return members[msg.sender][member];
   }
 
 
@@ -68,14 +72,8 @@ contract BuildCollective is Ownable {
     uint256 balance;
     string owner;
     bool ownedByEnterprise;
-    string linkToGitRepo;
-    string[] bug;
-    uint256[] bounty;
-    bool[] bugFixed;
+    string LastGitCommit;
   }
-
-  mapping(address => Project) public projects; 
-  mapping(address => mapping(address => User)) private contributors;
 
   function memcmp(bytes memory a, bytes memory b) internal pure returns(bool){
         return (a.length == b.length) && (keccak256(a) == keccak256(b));
@@ -83,38 +81,35 @@ contract BuildCollective is Ownable {
   
   function strcmp(string memory a, string memory b) internal pure returns(bool){
         return memcmp(bytes(a), bytes(b));
-    }
-
-  
-  event NewProject(address indexed userAddress, Project indexed newproject);
-  
-  function addNewProject(string memory projectName, string memory Link) public returns(Project memory){
-    require(bytes(projectName).length > 0);
-    require(bytes(users[msg.sender].username).length > 0  || bytes(enterprises[msg.sender].name).length > 0 );
-
-    if (bytes(enterprises[msg.sender].name).length > 0){
-      projects[msg.sender]= Project(projectName, 0, enterprises[msg.sender].name, true, Link, new string[](0), new uint256[](0), new bool[](0));
-    
-    } else if(bytes(users[msg.sender].username).length > 0){
-      projects[msg.sender]= Project(projectName, 0, users[msg.sender].username, true, Link, new string[](0), new uint256[](0), new bool[](0));
-    }
-    emit NewProject(msg.sender, projects[msg.sender]);
   }
 
-  function contribute(string memory projectName, address projectAddress) public returns (User memory){
+  mapping(address => Project) public projects; 
+  mapping(address => mapping(address => User)) public contributors;
+
+  function addNewProject(string memory projectName, string memory Link, address projectAddress) public returns(Project memory){
+    require(users[msg.sender].registered);
+    projects[projectAddress]= Project(projectName, 0, users[msg.sender].username, true, Link);
+    return projects[projectAddress];
+  }
+
+  function getProject(address projectAddress) public returns (Project memory){
+    return projects[projectAddress];
+  }
+
+  function contribute(string memory projectName, address projectAddress, string memory commit) public returns (User memory){
     assert(strcmp(projectName, projects[projectAddress].name));
     require(bytes(users[msg.sender].username).length > 0);
     contributors[projectAddress][msg.sender]= User(users[msg.sender].username, 0, true);
+    projects[projectAddress].LastGitCommit = commit;
   }
 
-  function donateToProject(string memory projectName, address projectAddress, uint256 amount) public returns(bool){
+  function donateToProject(string calldata projectName, address payable projectAddress, uint256 amount) external payable {
     assert(strcmp(projectName, projects[projectAddress].name));
     require(bytes(users[msg.sender].username).length> 0);
     projects[projectAddress].balance  += amount;
-    return true;
   } 
 
-  function retrieveEth(address projectAddress, uint256 amount) public returns (bool){
+  function retrieveEth(address payable projectAddress, uint256 amount) external payable{
     require(bytes(users[msg.sender].username).length > 0);
     require(bytes(projects[projectAddress].name).length > 0);
     require(projects[projectAddress].balance > amount); 
@@ -123,27 +118,33 @@ contract BuildCollective is Ownable {
     projects[projectAddress].balance -= amount;
   }
 
-  function setBounty(string memory projectName, address projectAddress, uint256 amount, string memory bugName) public returns(Project memory){
+  struct Bounty {
+    string bug;
+    uint256 reward;
+    bool fixedbug;
+  }
+ 
+  mapping(address => Bounty) public bounties;  
+
+  function setBounty(string memory bugname, address projectAddress, uint256 reward) public returns(Bounty memory){
     require(strcmp(users[msg.sender].username, projects[projectAddress].owner));
     require(bytes(projects[projectAddress].name).length > 0);
-    (projects[projectAddress].bug).push(bugName);
-    (projects[projectAddress].bounty).push(amount);
-    (projects[projectAddress].bugFixed).push(false);
+    bounties[projectAddress] = Bounty(bugname, reward, false);
   }
 
-  function fixBug(address projectAddress, string memory bugName) public returns (bool){
-
+  function fixBug(address projectAddress, string memory fixCommit) public returns (bool){
     require(bytes(users[msg.sender].username).length > 0);
-    require(bytes(bugName).length > 0);
-
-    uint indexOfBug;
-    for (uint j=0; j<=(projects[projectAddress].bug).length;j++){
-      if (strcmp(bugName, projects[projectAddress].bug[j])) {
-        indexOfBug = j;
-        break;
-      }
-      projects[projectAddress].bugFixed[indexOfBug] = true;
-      users[msg.sender].balance += projects[projectAddress].bounty[indexOfBug];
-    }
+    require(strcmp(users[msg.sender].username, contributors[projectAddress][msg.sender].username));
+    contribute(projects[projectAddress].name, projectAddress, fixCommit);
   }
+
+  function validateFix(address payable fixuser, address payable projectAddress, string calldata bugname) external payable {
+    require(strcmp(users[msg.sender].username, projects[projectAddress].owner));
+    require(strcmp(users[fixuser].username, contributors[projectAddress][fixuser].username));
+    
+        bounties[projectAddress].fixedbug = true;
+        users[fixuser].balance += bounties[projectAddress].reward;
+        bounties[projectAddress].reward = 0;
+  }
+      
 }
