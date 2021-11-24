@@ -1,4 +1,5 @@
 const { assert } = require("@vue/compiler-core");
+const { default: Web3 } = require("web3");
 
 const BuildCollective  = artifacts.require('BuildCollective');
 
@@ -57,11 +58,27 @@ contract('BuildCollective', accounts => {
         assert(proj.LastGitCommit === "https://github.com/Nacymus/build-collective/fixbugcommit");
     });
 
-    it('donates to project and test project new balance', async () => {
-        await buildCollective.donateToProject("DAAR_Project_3","0xc9612f7464DDAb678AD3561e84c49cB51Bb58b1E", 10, {from: contrib});
-        const proj = await buildCollective.projects("0xc9612f7464DDAb678AD3561e84c49cB51Bb58b1E");
-        console.log(proj.balance.toString());
-        assert(proj.balance.toNumber() === 10);
+    // Start testing eth tranferring functions. 
+    // At this stage, both asserts and the figures we see on Ganache UI are proof of correct transfers.      
+
+    
+    it('checks that a user donates to a project', async () => {
+        //let proj = await buildCollective.projects("0xc9612f7464DDAb678AD3561e84c49cB51Bb58b1E");
+        await buildCollective.donateToProject("DAAR_Project_3", "0xc9612f7464DDAb678AD3561e84c49cB51Bb58b1E", 5, {from: noncontrib, value: web3.utils.toWei('5', 'Ether')});
+        
+    });
+
+
+    it('checks that an owner of project redistributes eth to contributors', async () => {
+        //let proj = await buildCollective.projects("0xc9612f7464DDAb678AD3561e84c49cB51Bb58b1E");
+        await buildCollective.payContrib("0xc9612f7464DDAb678AD3561e84c49cB51Bb58b1E", "0xF363B2F2E00a71F6043e08200311d4CB1D43Bb7a", 5, {from: ownerProject, value: web3.utils.toWei('5', 'Ether')});
+        
+    });
+
+    it('checks that an owner of project redistributes eth to contributors', async () => {
+        //let proj = await buildCollective.projects("0xc9612f7464DDAb678AD3561e84c49cB51Bb58b1E");
+        await buildCollective.validateFix("0xF363B2F2E00a71F6043e08200311d4CB1D43Bb7a" ,"0xc9612f7464DDAb678AD3561e84c49cB51Bb58b1E", "premier bug à réparer", {from: ownerProject, value: web3.utils.toWei('5', 'Ether')});
+        
     });
 
 

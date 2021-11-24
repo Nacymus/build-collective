@@ -106,16 +106,16 @@ contract BuildCollective is Ownable {
   function donateToProject(string calldata projectName, address payable projectAddress, uint256 amount) external payable {
     assert(strcmp(projectName, projects[projectAddress].name));
     require(bytes(users[msg.sender].username).length> 0);
-    projects[projectAddress].balance  += amount;
+    address(projectAddress).transfer(msg.value);
   } 
 
-  function retrieveEth(address payable projectAddress, uint256 amount) external payable{
-    require(bytes(users[msg.sender].username).length > 0);
-    require(bytes(projects[projectAddress].name).length > 0);
-    require(projects[projectAddress].balance > amount); 
-    assert(strcmp(users[msg.sender].username, contributors[projectAddress][msg.sender].username));
-    contributors[projectAddress][msg.sender].balance += amount;
-    projects[projectAddress].balance -= amount;
+  function payContrib(address payable projectAddress, address payable contribAddress, uint256 amount) external payable{
+    require(strcmp(users[msg.sender].username, projects[projectAddress].owner));
+    assert(strcmp(users[contribAddress].username, contributors[projectAddress][contribAddress].username));
+    //contributors[projectAddress][msg.sender].balance += amount;
+    //projects[projectAddress].balance -= amount;
+    //msg.value *= amount;
+    address(contribAddress).transfer(msg.value);
   }
 
   struct Bounty {
@@ -141,10 +141,11 @@ contract BuildCollective is Ownable {
   function validateFix(address payable fixuser, address payable projectAddress, string calldata bugname) external payable {
     require(strcmp(users[msg.sender].username, projects[projectAddress].owner));
     require(strcmp(users[fixuser].username, contributors[projectAddress][fixuser].username));
-    
         bounties[projectAddress].fixedbug = true;
-        users[fixuser].balance += bounties[projectAddress].reward;
+        //users[fixuser].balance += bounties[projectAddress].reward;
+        address(fixuser).transfer(msg.value);
         bounties[projectAddress].reward = 0;
+        
   }
       
 }
