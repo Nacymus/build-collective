@@ -75,7 +75,7 @@ contract('BuildCollective', accounts => {
         
     });
 
-    it('checks that an owner of project redistributes eth to contributors', async () => {
+    it('checks that an owner of project rewards a contributor for fixing abug', async () => {
         //let proj = await buildCollective.projects("0xc9612f7464DDAb678AD3561e84c49cB51Bb58b1E");
         await buildCollective.validateFix("0xF363B2F2E00a71F6043e08200311d4CB1D43Bb7a" ,"0xc9612f7464DDAb678AD3561e84c49cB51Bb58b1E", "premier bug à réparer", {from: ownerProject, value: web3.utils.toWei('5', 'Ether')});
         
