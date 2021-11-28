@@ -1,4 +1,4 @@
-# Project 3 Daar :
+# Project 3 Daar :  
 
 This is a work Done : 
 
@@ -17,4 +17,4 @@ To test by yourselves,
      - truffle test test/Test_contribution_project_bounty.js
 
 
-    The tests will all pass and you can the magic of eth trasferring on the balance of the accounts on ganache. 
+    The tests will all pass and you can see the magic  of eth transferring on the balance of the accounts on ganache. A quick video demo of that at this link :   https://www.youtube.com/watch?v=Dz_s8j_RJ4w. 
